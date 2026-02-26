@@ -65,8 +65,14 @@
     {
       "name": "SQLite 查询",
       "category": "database",
-      "example": "const results = k.DB.sqlite.query('SELECT * FROM products WHERE price > ?', [100])\nconst products = k.DB.sqlite.products.findAll({ category: 'electronics' })",
+      "example": "// 原生 SQL 查询\nconst results = k.DB.sqlite.query('SELECT * FROM products WHERE price > ?', [100])\n\n// 查询所有\nconst products = k.DB.sqlite.products.all()\n\n// 按条件查询\nconst { GT } = k.DB.sqlite.operators()\nconst products = k.DB.sqlite.products.findAll({\n    category: 'electronics',\n    price: { [GT]: 100 }\n})\n\n// 单条查询\nconst product = k.DB.sqlite.products.find({ _id: 1 })",
       "description": "执行 SQLite 查询"
+    },
+    {
+      "name": "k_sqlite ORM",
+      "category": "database",
+      "example": "// 导入模块\nimport { ksql, DataTypes } from 'module/k_sqlite'\n\n// 定义模型\nconst User = ksql.define('users', {\n    userName: { type: DataTypes.String, required: true },\n    email: { type: DataTypes.String, unique: true, index: true },\n    password: { type: DataTypes.String, required: true },\n    age: { type: DataTypes.Number },\n    isActive: { type: DataTypes.Boolean, default: true }\n}, { timestamps: true })\n\n// 注意: k_sqlite 是同步操作，不需要 await\n\n// 创建\nconst id = User.create({\n    userName: 'john',\n    email: 'john@example.com',\n    password: 'hashed_password'\n})\n\n// 查询\nconst user = User.findOne({ email: 'john@example.com' })\nconst user = User.findById(id)\nconst users = User.findAll({ isActive: true })\n\n// 更新\nUser.updateOne({ email: 'john@example.com' }, { userName: 'john_updated' })\nUser.updateById(id, { userName: 'new_name' })\n\n// 删除\nUser.deleteById(id)\nUser.deleteOne({ email: 'john@example.com' })\n\n// 排序\nconst users = User.findAll({}, {\n    order: [{ prop: 'createdAt', order: 'DESC' }]\n})\n\n// 聚合\nconst count = User.count({ isActive: true })\nconst maxPrice = Product.max('price', {})",
+      "description": "k_sqlite ORM 数据库操作（同步，不需要 await）"
     },
     {
       "name": "文件读取",

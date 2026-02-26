@@ -18,19 +18,37 @@ const results = k.DB.sqlite.query('SELECT * FROM products WHERE price > ?', [100
 const products = k.DB.sqlite.products.all()
 
 // 按条件查询
+const { GT } = k.DB.sqlite.operators()
 const products = k.DB.sqlite.products.findAll({
     category: 'electronics',
-    price: { $gt: 100 }
+    price: { [GT]: 100 }
 })
 
 // 单条查询
-const product = k.DB.sqlite.products.findOne({ id: 1 })
+// 注意: kooboo 的 sqlite 会默认使用 _id 作为主键
+const product = k.DB.sqlite.products.find({ _id: 1 })
 ```
 
 ### 操作符
 
 ```javascript
 const ops = k.DB.sqlite.operators()
+    "AND",
+    "OR",
+// 逻辑操作符
+const product = k.DB.sqlite.products.find({
+    [ops.AND]: [
+        { category: 'electronics' },
+        { price: { [ops.GT]: 100 } }
+    ]
+})
+
+const product = k.DB.sqlite.products.find({
+    [ops.OR]: [
+        { category: 'electronics' },
+        { category: 'clothing' }
+    ]
+})
 
 // 比较操作符
 const products = k.DB.sqlite.products.findAll({
@@ -38,47 +56,31 @@ const products = k.DB.sqlite.products.findAll({
     price: { [ops.GTE]: 100 },     // >=
     price: { [ops.LT]: 1000 },     // <
     price: { [ops.LTE]: 1000 },    // <=
-    name: { [ops.NE]: 'Admin' }    // !=
+    name: { [ops.NE]: 'Admin' },    // !=
+    name: { [ops.STARTS_WITH]: 'iPhone' },    // 以 iPhone 开头
+    name: { [ops.CONTAINS]: '15' },    // 包含 15
 })
 
-// 模糊查询
-const products = k.DB.sqlite.products.findAll({
-    name: { [ops.LIKE]: '%phone%' }
-})
-
-// 范围查询
-const products = k.DB.sqlite.products.findAll({
-    price: { [ops.BETWEEN]: [100, 1000] }
-})
-
-// IN 查询
-const products = k.DB.sqlite.products.findAll({
-    category: { [ops.IN]: ['electronics', 'books', 'clothing'] }
-})
 ```
 
 ### 插入/更新/删除
 
 ```javascript
 // 插入
-const id = k.DB.sqlite.products.add({
+const id = k.DB.sqlite.products.append({
     name: 'iPhone 15',
     price: 999,
     category: 'electronics'
 })
 
 // 更新
-k.DB.sqlite.products.update({
-    id: 1,
+k.DB.sqlite.products.update(_id, {
     name: 'iPhone 15 Pro',
     price: 1199
 })
 
 // 删除
-k.DB.sqlite.products.delete(1)
-
-// 条件删除
-k.DB.sqlite.products.deleteWhere({ category: 'deprecated' })
+k.DB.sqlite.products.delete(_id)
 ```
 
 ---
@@ -160,7 +162,7 @@ const Product = ksql.define('products', {
     },
     category: {
         type: DataTypes.String,
-        ref: 'categories.id'   // 外键引用
+        ref: { tableName: 'categories', fieldName: 'id' }   // 外键引用
     }
 }, { timestamps: true })
 ```
@@ -173,16 +175,17 @@ const Product = ksql.define('products', {
 
 ```typescript
 // 创建单条
-const id = await User.create({
+const id = User.create({
     userName: 'john',
     email: 'john@example.com',
     password: 'hashed_password'
 })
 
 // 条件创建（不存在才创建）
-const id = await User.createIfNotExists(
-    { email: 'john@example.com' },
+// createIfNotExists(data, condition)
+const id = User.createIfNotExists(
     { userName: 'john', password: 'hashed' }
+    { email: 'john@example.com' },
 )
 ```
 
@@ -190,47 +193,29 @@ const id = await User.createIfNotExists(
 
 ```typescript
 // 查询单条
-const user = await User.findOne({ email: 'john@example.com' })
-const user = await User.findById(id)
+const user = User.findOne({ email: 'john@example.com' })
+const user = User.findById(id)
 
 // 查询多条
-const users = await User.findAll({ isActive: true })
-
-// 分页查询
-const result = await User.findPaginated(
-    { isActive: true },
-    { 
-        select: ['id', 'userName', 'email'],  // 指定字段
-        order: { prop: 'createdAt', order: 'descending' },
-        page: 1,
-        pageSize: 20
-    }
-)
-// 返回: { list: [...], page: 1, pageSize: 20, total: 100 }
+const users = User.findAll({ isActive: true })
 ```
 
 ### 更新
 
 ```typescript
 // 更新单条
-const id = await User.updateOne(
+const id = User.updateOne(
     { email: 'john@example.com' },
     { userName: 'john_updated' }
 )
 
 // 按 ID 更新
-const id = await User.updateById(id, { userName: 'new_name' })
+const id = User.updateById(id, { userName: 'new_name' })
 
 // 批量更新
-const ids = await User.updateMany(
+const ids = User.updateMany(
     { isActive: false },
     { status: 'inactive' }
-)
-
-// 保存或创建
-const id = await User.updateOrCreate(
-    { userName: 'john' },
-    { email: 'john@example.com', password: 'xxx' }
 )
 ```
 
@@ -238,17 +223,10 @@ const id = await User.updateOrCreate(
 
 ```typescript
 // 物理删除
-await User.deleteById(id)
-await User.deleteOne({ email: 'john@example.com' })
-const count = await User.deleteMany({ isActive: false })
+User.deleteById(id)
+User.deleteOne({ email: 'john@example.com' })
+User.deleteMany({ isActive: false })
 
-// 软删除（推荐）
-await User.removeById(id)
-await User.removeOne({ email: 'john@example.com' })
-const count = await User.removeMany({ isActive: false })
-
-// 恢复软删除
-await User.restoreByIds([id1, id2])
 ```
 
 ---
@@ -258,7 +236,7 @@ await User.restoreByIds([id1, id2])
 ### select - 字段选择
 
 ```typescript
-const users = await User.findAll({}, {
+const users = User.findAll({}, {
     select: ['id', 'userName', 'email']
 })
 ```
@@ -266,7 +244,7 @@ const users = await User.findAll({}, {
 ### exclude - 排除字段
 
 ```typescript
-const users = await User.findAll({}, {
+const users = User.findAll({}, {
     exclude: ['password', 'token']
 })
 ```
@@ -275,26 +253,18 @@ const users = await User.findAll({}, {
 
 ```typescript
 // 升序
-const users = await User.findAll({}, {
-    order: 'userName'
+const users = User.findAll({}, {
+    order: [{ prop: "createdAt", order: "ASC"}]
 })
 
 // 降序
-const users = await User.findAll({}, {
-    order: { prop: 'createdAt', order: 'descending' }
+const users = User.findAll({}, {
+    order: [{ prop: 'createdAt', order: 'DESC' }]
 })
 
 // 随机
-const users = await User.findAll({}, {
+const users = User.findAll({}, {
     order: 'RANDOM()'
-})
-```
-
-### includeDeleted - 包含已删除
-
-```typescript
-const users = await User.findAll({}, {
-    includeDeleted: true
 })
 ```
 
@@ -304,14 +274,14 @@ const users = await User.findAll({}, {
 
 ```typescript
 // 计数
-const count = await User.count({ isActive: true })
+const count = User.count({ isActive: true })
 
 // 求和
-const total = await Order.sum('amount', { status: 'paid' })
+const total = Order.sum('amount', { status: 'paid' })
 
 // 最大/最小
-const maxPrice = await Product.max('price')
-const minPrice = await Product.min('price')
+const maxPrice = Product.max('price', {})
+const minPrice = Product.min('price', {})
 ```
 
 ---
@@ -321,7 +291,7 @@ const minPrice = await Product.min('price')
 ### 查询
 
 ```typescript
-const results = await ksql.query(
+const results = ksql.query(
     'SELECT * FROM users WHERE age > ? AND status = ?',
     [18, 'active']
 )
@@ -330,7 +300,7 @@ const results = await ksql.query(
 ### 执行
 
 ```typescript
-const affected = await ksql.execute(
+const affected = ksql.execute(
     'UPDATE users SET status = ? WHERE age < ?',
     ['inactive', 18]
 )
@@ -338,38 +308,12 @@ const affected = await ksql.execute(
 
 ---
 
-## 模型关系
-
-### 外键引用
-
-```typescript
-const Order = ksql.define('orders', {
-    userId: {
-        type: DataTypes.Number,
-        ref: 'users.id'
-    },
-    total: {
-        type: DataTypes.Number
-    }
-}, { timestamps: true })
-
-// 查找时包含关联数据（需要自行处理联表）
-const orders = await Order.findAll()
-const ordersWithUser = orders.map(order => ({
-    ...order,
-    user: await User.findById(order.userId)
-}))
-```
-
----
-
 ## 最佳实践
 
-1. **启用软删除**：`softDelete: true`，防止误删
-2. **添加时间戳**：`timestamps: true`，跟踪创建和更新时间
-3. **常用字段加索引**：`index: true`，提升查询性能
-4. **分页查询**：大数据量使用 `findPaginated`，避免 `findAll`
-5. **指定查询字段**：使用 `select` 避免 `SELECT *`
+1. **添加时间戳**：`timestamps: true`，跟踪创建和更新时间
+2. **常用字段加索引**：`index: true`，提升查询性能
+3. **分页查询**：大数据量分页返回
+4. **指定查询字段**：使用 `select` 避免 `SELECT *`
 
 ---
 
@@ -386,8 +330,8 @@ const users = User.findAll({})
 User.updateById(id, { name: 'new' })
 User.removeById(id)
 
-// ❌ 错误：不需要 await
-const user = await User.findById(id)  // 不需要 await
+// ❌ 错误：不支持 await
+const user = await User.findById(id)  // 不支持 await
 ```
 
 ### 2. 主键是 `_id`，不是 `id`
