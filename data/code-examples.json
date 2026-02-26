@@ -1,0 +1,185 @@
+{
+  "description": "Kooboo 常用代码示例集",
+  "patterns": [
+    {
+      "name": "页面路由定义",
+      "category": "routing",
+      "example": "<!-- @k-url /products/{category} -->",
+      "description": "在 HTML 文件顶部定义页面路由"
+    },
+    {
+      "name": "SSR 数据获取",
+      "category": "ssr",
+      "example": "<script env=\"server\" type=\"module\">\n  const products = k.DB.sqlite.products.all()\n  k.state.set('products', products)\n  k.utils.clientJS.setVariable('products', products)\n</script>",
+      "description": "服务端获取数据并传递给客户端"
+    },
+    {
+      "name": "GET API 定义",
+      "category": "api",
+      "example": "k.api.get('products', () => {\n  return k.DB.sqlite.products.all()\n})",
+      "description": "定义 GET 类型的 API 端点"
+    },
+    {
+      "name": "POST API 定义",
+      "category": "api",
+      "example": "// 少量字段：行内定义类型\nk.api.post('login', (body: { userName: string, password: string }) => {\n  const { userName, password } = body\n  return { success: true }\n})\n\n// 字段较多：定义接口\ninterface CreateOrderBody {\n  productId: string\n  quantity: number\n  remark?: string\n}\nk.api.post('create-order', (body: CreateOrderBody) => {\n  const { productId, quantity, remark } = body\n  const order = k.DB.sqlite.orders.add({ productId, quantity, remark })\n  return { success: true, orderId: order._id }\n})",
+      "description": "定义 POST 类型的 API 端点"
+    },
+    {
+      "name": "查询参数获取",
+      "category": "request",
+      "example": "const id = k.request.queryString.id\nconst name = k.request.get('name')",
+      "description": "获取 URL 查询参数"
+    },
+    {
+      "name": "表单数据获取",
+      "category": "request",
+      "example": "const email = k.request.form.email\nconst password = k.request.form.password",
+      "description": "获取表单提交的数据"
+    },
+    {
+      "name": "JSON 响应",
+      "category": "response",
+      "example": "k.response.json({ success: true, data: items })",
+      "description": "返回 JSON 格式的响应"
+    },
+    {
+      "name": "页面重定向",
+      "category": "response",
+      "example": "k.response.redirect('/login')",
+      "description": "重定向到其他页面"
+    },
+    {
+      "name": "会话存储",
+      "category": "session",
+      "example": "k.session.set('userId', user.id)\nconst userId = k.session.get('userId')",
+      "description": "在会话中存储和获取数据"
+    },
+    {
+      "name": "Cookie 设置",
+      "category": "cookie",
+      "example": "k.cookie.set('token', 'abc123', 7)  // 7天过期\nconst token = k.cookie.get('token')",
+      "description": "设置和获取 Cookie"
+    },
+    {
+      "name": "SQLite 查询",
+      "category": "database",
+      "example": "const results = k.DB.sqlite.query('SELECT * FROM products WHERE price > ?', [100])\nconst products = k.DB.sqlite.products.findAll({ category: 'electronics' })",
+      "description": "执行 SQLite 查询"
+    },
+    {
+      "name": "文件读取",
+      "category": "file",
+      "example": "const content = k.file.read('data/config.json')\nconst info = k.file.load('image.jpg')\nconst imageUrl = info.url",
+      "description": "读取文件和获取文件信息"
+    },
+    {
+      "name": "文件写入",
+      "category": "file",
+      "example": "k.file.write('logs/activity.log', 'User logged in')\nk.file.writeBinary('uploads/image.jpg', bytes)",
+      "description": "写入文本和二进制文件"
+    },
+    {
+      "name": "内容查询",
+      "category": "content",
+      "example": "const posts = k.content.blog.all()\nconst featured = k.content.blog.find(\"isFeatured = true\")\nconst { GT } = k.content.operators()\nconst recent = k.content.blog.find({ date: { [GT]: '2024-01-01' } })",
+      "description": "查询内容管理中的数据"
+    },
+    {
+      "name": "内容增删改",
+      "category": "content",
+      "example": "k.content.blog.add({ title: 'New Post', content: '...' })\nk.content.blog.update(post)\nk.content.blog.delete(post.id)",
+      "description": "内容的创建、更新、删除操作"
+    },
+    {
+      "name": "电商商品列表",
+      "category": "commerce",
+      "example": "const products = k.commerce.product.list({ category: 'electronics' })\nconst product = k.commerce.product.get(productId)",
+      "description": "获取商品列表和详情"
+    },
+    {
+      "name": "购物车操作",
+      "category": "commerce",
+      "example": "const cart = k.commerce.cart.get()\ncart.addItem(productId, quantity)\nconst total = cart.total()",
+      "description": "购物车的增删改查"
+    },
+    {
+      "name": "外部 API 请求",
+      "category": "net",
+      "example": "const data = k.net.url.getJson('https://api.example.com/data')\nconst html = k.net.url.get(url, { 'Authorization': 'Bearer token' })",
+      "description": "发送 HTTP 请求到外部 API"
+    },
+    {
+      "name": "数据加密",
+      "category": "security",
+      "example": "const encrypted = k.security.encrypt(data, key)\nconst decrypted = k.security.decrypt(encrypted, key)\nconst hash = k.security.sha256(password)",
+      "description": "数据加密和解密"
+    },
+    {
+      "name": "Base64 编码",
+      "category": "security",
+      "example": "const encoded = k.security.toBase64('hello')\nconst decoded = k.security.decodeBase64(encoded)",
+      "description": "Base64 编码和解码"
+    },
+    {
+      "name": "JWT 令牌",
+      "category": "security",
+      "example": "const token = k.security.jwt.encode({ userId: 123 }, 'secret')\nconst payload = k.security.jwt.decode(token)",
+      "description": "生成和解析 JWT 令牌"
+    },
+    {
+      "name": "多语言标签",
+      "category": "i18n",
+      "example": "const title = k.label('page.title')\nconst greeting = k.t('Hello {name}', { name: 'John' })",
+      "description": "使用国际化标签"
+    },
+    {
+      "name": "布局使用",
+      "category": "layout",
+      "example": "<layout id=\"app.main\">\n  <placeholder id=\"Main\">\n    <!-- 页面内容 -->\n  </placeholder>\n</layout>",
+      "description": "使用 Kooboo 布局系统"
+    },
+    {
+      "name": "视图组件引用",
+      "category": "view",
+      "example": "<view id=\"common.header\"></view>\n<view id=\"homepage.hero-banner\"></view>",
+      "description": "引用可复用的视图组件"
+    },
+    {
+      "name": "邮件发送",
+      "category": "mail",
+      "example": "const msg = k.mail.createMessage()\nmsg.to = 'user@example.com'\nmsg.subject = 'Hello'\nmsg.body = 'Content'\nk.mail.smtp.send(msg)",
+      "description": "通过 SMTP 发送邮件"
+    },
+    {
+      "name": "网站信息获取",
+      "category": "site",
+      "example": "const siteId = k.site.webSite.id\nconst host = k.site.info.host\nconst culture = k.site.multilingual.currentCulture",
+      "description": "获取当前网站的基本信息"
+    },
+    {
+      "name": "模块配置",
+      "category": "module",
+      "example": "{\n  \"name\": \"My Module\",\n  \"description\": \"Module description\",\n  \"version\": \"1.0.0\",\n  \"menu\": {\n    \"name\": \"My Module\",\n    \"icon\": \"icon.svg\"\n  }\n}",
+      "description": "Kooboo 模块的 Module.config 配置"
+    },
+    {
+      "name": "错误响应",
+      "category": "api",
+      "example": "k.api.httpCode(400)  // Bad Request\nk.api.httpCode(401)  // Unauthorized\nk.api.httpCode(404)  // Not Found\nk.api.httpCode(500)  // Server Error",
+      "description": "返回 HTTP 错误码"
+    },
+    {
+      "name": "文件上传处理",
+      "category": "request",
+      "example": "if (k.request.files.length > 0) {\n  const file = k.request.files[0]\n  file.save(file.fileName)\n}",
+      "description": "处理文件上传"
+    },
+    {
+      "name": "客户端 JavaScript 交互",
+      "category": "ssr",
+      "example": "// 服务端\nk.utils.clientJS.setVariable('config', config)\n\n// 客户端\nconst config = window.config",
+      "description": "服务端和客户端数据传递"
+    }
+  ]
+}
