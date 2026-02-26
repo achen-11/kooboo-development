@@ -80,84 +80,108 @@ const uuid = k.security.uuid()
 
 ## k.net — 网络请求
 
-### GET 请求
+> ⚠️ 使用 `k.net.httpClient`进行代理转发请求。
+
+### 基础请求
 
 ```javascript
-// 简单 GET
-const html = k.net.url.get('https://example.com')
+// GET 请求
+const response = k.net.httpClient.send('https://api.example.com/data', 'GET')
+const body = response.bodyString()
+const statusCode = response.statusCode
 
-// GET JSON
-const json = k.net.url.getJson('https://api.example.com/data')
-
-// 获取二进制
-const binary = k.net.url.getAsBinary('https://example.com/image.png')
-
-// 带请求头
-const data = k.net.url.get('https://api.example.com', {
-    'Authorization': 'Bearer token',
-    'Content-Type': 'application/json'
-})
-
-// 基本认证
-const data = k.net.url.get('https://api.example.com', 'username', 'password')
-```
-
-### POST 请求
-
-```javascript
 // POST JSON
-const result = k.net.url.post('https://api.example.com/create', {
+const content = k.net.httpClient.createJsonContent({
     name: 'John',
     email: 'john@example.com'
 })
+const response = k.net.httpClient.send('https://api.example.com/create', 'POST', content)
 
 // POST 表单
-const result = k.net.url.postform('https://api.example.com/submit', {
+const formContent = k.net.httpClient.createFormUrlEncodedContent({
     name: 'John',
     message: 'Hello'
 })
+const response = k.net.httpClient.send('https://api.example.com/submit', 'POST', formContent)
 
-// POST 二进制
-const result = k.net.url.postBinary('https://api.example.com/upload', fileData)
+// PUT 请求
+const response = k.net.httpClient.send('https://api.example.com/update/1', 'PUT', content)
+
+// DELETE 请求
+const response = k.net.httpClient.send('https://api.example.com/delete/1', 'DELETE')
+
+// 带请求头
+const response = k.net.httpClient.send(
+    'https://api.example.com/data',
+    'GET',
+    undefined,
+    { 'Authorization': 'Bearer token' }
+)
+
+// 带超时
+const response = k.net.httpClient.send(
+    'https://api.example.com/data',
+    'GET',
+    undefined,
+    undefined,
+    30000  // 30秒超时
+)
 ```
 
-### 其他 HTTP 方法
+### 文件上传
 
 ```javascript
-// PUT
-const result = k.net.url.put('https://api.example.com/update/1', data)
+// POST multipart 表单（支持文件上传）
+const multipartContent = k.net.httpClient.createMultipartFormDataContent()
+multipartContent.add('name', 'jobs')
+multipartContent.addFile('file', 'image.png', k.file.readBinary('image.png'))
 
-// DELETE
-const result = k.net.url.delete('https://api.example.com/delete/1')
-
-// PATCH
-const result = k.net.url.patch('https://api.example.com/patch/1', data)
+const response = k.net.httpClient.send('https://api.example.com/upload', 'POST', multipartContent)
+const result = response.bodyString()
 ```
 
-### 请求配置
+### 批量请求
 
 ```javascript
-// 完整配置
-const result = k.net.url.get('https://api.example.com', {
-    'Authorization': 'Bearer token',  // 请求头
-    timeout: 30000,                  // 超时时间（毫秒）
-    followRedirects: true            // 是否跟随重定向
-})
+// 批量请求
+const batchRequest = k.net.httpClient.createBatchRequest()
+
+const task1 = batchRequest.addTask('https://example.com/1.png', 'GET')
+task1.responseType = 'File'
+task1.savePath = 'images/1.png'
+
+const task2 = batchRequest.addTask('https://example.com/info.json', 'GET')
+task2.responseType = 'String'
+
+k.net.httpClient.send(batchRequest)
+
+// 获取结果
+const isSuccess = task1.isSuccess
+const errorMessage = task1.errorMessage
+const fileResult = task1.fileResult
+const stringResult = task2.stringResult
 ```
 
 ### 响应处理
 
 ```javascript
-const response = k.net.url.get('https://api.example.com/data')
+const response = k.net.httpClient.send('https://api.example.com/data', 'GET')
 
 // 响应状态码
 const status = response.statusCode
 
 // 响应头
-const contentType = response.headers['content-type']
+const contentType = response.getHeader('content-type')
 
-// 响应体
-const body = response.body
+// 响应体（字符串）
+const body = response.bodyString()
+
+// 响应体（二进制）
+const binary = response.bodyBinary()
+
+// 保存到文件
+const fileInfo = response.save('path/to/save/file.txt')
+const fileInfo = response.saveBinary('path/to/save/image.png')
 ```
 
 ---
@@ -167,16 +191,24 @@ const body = response.body
 ### SMTP 发送
 
 ```javascript
+// 创建 SMTP 服务器配置
+const server = k.mail.createSmtpServer()
+server.host = 'smtp.qq.com'  // 服务器地址
+server.port = 465  // 端口（SSL 通常使用 465）
+server.ssl = true  // 是否启用 SSL
+server.username = 'your-email@qq.com'  // 用户名
+server.password = 'your-auth-code'  // SMTP 授权码
+
 // 创建邮件
 const msg = k.mail.createMessage()
 
+// 设置发件人
+msg.from = 'your-email@qq.com'  // 发件人
+
 // 设置收件人
 msg.to = 'user@example.com'
-msg.to = 'user1@example.com, user2@example.com'  // 多个收件人
-
-// 设置发件人（默认使用站点配置）
-msg.from = 'noreply@example.com'
-msg.fromName = '网站名称'
+// 多个收件人用逗号分隔
+// msg.to = 'user1@example.com, user2@example.com'
 
 // 设置主题
 msg.subject = '欢迎注册'
@@ -185,62 +217,56 @@ msg.subject = '欢迎注册'
 msg.body = '欢迎加入我们的网站！'
 
 // 或设置 HTML 正文
-msg.bodyHtml = '<h1>欢迎</h1><p>欢迎加入我们的网站！</p>'
+msg.htmlBody = '<h1>欢迎</h1><p>欢迎加入我们的网站！</p>'
 
-// 添加附件
-msg.addAttachment('/path/to/file.pdf', 'report.pdf')
-
-// 发送
-const result = k.mail.smtp.send(msg)
-
-if (result.success) {
-    console.log('邮件发送成功')
-}
+// 发送邮件（需要传入 server 配置）
+k.mail.smtp.send(server, msg)
 ```
 
 ### 完整示例
 
-```javascript
-// api/send-welcome-email.ts
-k.api.post('send-welcome', (body) => {
-    const { email, name } = body
-
-    const msg = k.mail.createMessage()
-    msg.to = email
-    msg.subject = '欢迎注册'
-    msg.bodyHtml = `
-        <h1>欢迎 ${name}！</h1>
-        <p>感谢您注册我们的网站。</p>
-        <p>点击以下链接验证邮箱：</p>
-        <a href="https://example.com/verify?email=${encodeURIComponent(email)}">验证邮箱</a>
+```typescript
+// services/send-email.ts
+export function sendEmailCode(email: string, code: string) {
+    const emailContent = `
+    <div style="font-family: Arial, sans-serif;">
+        <h1>验证码</h1>
+        <p>您好！您正在进行邮箱验证，验证码为：</p>
+        <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px;">
+            ${code}
+        </div>
+        <p>验证码有效期为5分钟，请及时使用。</p>
+    </div>
     `
 
-    const result = k.mail.smtp.send(msg)
+    // 创建 SMTP 服务器配置
+    const server = k.mail.createSmtpServer()
+    server.host = ENV.EMAIL_HOST  // 服务器地址
+    server.port = ENV.EMAIL_PORT  // 端口
+    server.ssl = true  // 是否启用 SSL
+    server.username = ENV.SENDER_EMAIL  // 用户名
+    server.password = ENV.EMAIL_PASSWORD  // SMTP 授权码
 
-    if (result.success) {
-        return { success: true, message: '邮件已发送' }
-    } else {
-        k.response.statusCode(500)
-        return { success: false, message: '邮件发送失败' }
-    }
+    // 创建邮件
+    const msg = k.mail.createMessage()
+    msg.from = ENV.SENDER_EMAIL  // 发件人
+    msg.to = email  // 收件人
+    msg.subject = '邮箱验证码 - 系统'  // 邮件标题
+    msg.htmlBody = emailContent  // HTML 内容
+
+    // 发送
+    k.mail.smtp.send(server, msg)
+}
+
+// 在 API 中调用
+k.api.post('send-code', (body: { email: string }) => {
+    const { email } = body
+    const code = Math.random().toString().slice(-6)  // 生成6位验证码
+
+    sendEmailCode(email, code)
+
+    return { success: true, message: '验证码已发送' }
 })
-```
-
-### AWS SES 发送
-
-```javascript
-// 使用 AWS SES
-const mail = k.mail.amazonses.createEmail({
-    accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
-    secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-    region: 'us-east-1'
-})
-
-mail.to = 'user@example.com'
-mail.subject = 'Test'
-mail.body = 'Hello'
-
-const result = mail.send()
 ```
 
 ---
@@ -261,8 +287,8 @@ info.baseUrl        // 基础 URL
 info.culture        // 当前语言
 
 // 多语言
-const currentLang = k.site.multilingual.currentCulture
-const availableLangs = k.site.multilingual.cultures
+const currentLang = k.site.multilingual.currentCulture // en
+const availableLangs = k.site.multilingual.cultures // { "en": "English" }
 ```
 
 ### 资源管理
@@ -296,17 +322,22 @@ k.site.images.all()
 // api/fetch-products.ts
 k.api.get('fetch-products', () => {
     // 从外部 API 获取商品数据
-    const response = k.net.url.getJson('https://api.example.com/products', {
-        'Authorization': 'Bearer ' + k.session.token
-    })
+    const response = k.net.httpClient.send(
+        'https://api.example.com/products',
+        'GET',
+        undefined,
+        { 'Authorization': 'Bearer ' + k.cookie.get('token') }
+    )
 
-    if (!response || response.error) {
+    if (response.statusCode !== 200) {
         k.response.statusCode(502)
         return { success: false, message: '获取商品失败' }
     }
 
+    const data = JSON.parse(response.bodyString())
+
     // 处理数据并返回
-    const products = response.data.map(p => ({
+    const products = data.data.map((p: any) => ({
         id: p.id,
         name: p.name,
         price: p.price
@@ -322,21 +353,21 @@ k.api.get('fetch-products', () => {
 
 ```typescript
 // 注册时密码哈希
-k.api.post('register', (body) => {
+k.api.post('register', (body: any) => {
     const { username, password, email } = body
 
     // 检查用户是否已存在
     const existing = k.DB.sqlite.users.findOne({ email })
     if (existing) {
-        k.response.statusCode(400)
-        return { success: false, message: '邮箱已被注册' }
+        k.response.json({ success: false, message: '邮箱已被注册' })
+        return k.api.httpCode(400)
     }
 
-    // 密码哈希存储
-    const passwordHash = k.security.sha256(password + 'salt')
+    // md5 加密
+    const passwordHash = k.security.md5(password)
 
     // 创建用户
-    k.DB.sqlite.users.add({
+    k.DB.sqlite.users.append({
         username,
         email,
         password: passwordHash
@@ -346,19 +377,19 @@ k.api.post('register', (body) => {
 })
 
 // 登录时验证密码
-k.api.post('login', (body) => {
+k.api.post('login', (body: { email: string, password: string }) => {
     const { email, password } = body
 
     const user = k.DB.sqlite.users.findOne({ email })
     if (!user) {
-        k.response.statusCode(401)
-        return { success: false, message: '用户不存在' }
+        k.response.json({ success: false, message: '用户不存在' })
+        return k.api.httpCode(401)
     }
 
-    const passwordHash = k.security.sha256(password + 'salt')
+    const passwordHash = k.security.md5(password)
     if (user.password !== passwordHash) {
-        k.response.statusCode(401)
-        return { success: false, message: '密码错误' }
+        k.response.json({ success: false, message: '密码错误' })
+        return k.api.httpCode(401)
     }
 
     // 生成 JWT
@@ -394,17 +425,18 @@ k.api.post('login', (body) => {
 
 | 功能 | API |
 |------|-----|
-| GET | `k.net.url.get(url)` |
-| GET JSON | `k.net.url.getJson(url)` |
-| POST | `k.net.url.post(url, data)` |
-| POST 表单 | `k.net.url.postform(url, data)` |
-| PUT | `k.net.url.put(url, data)` |
-| DELETE | `k.net.url.delete(url)` |
+| 发送请求 | `k.net.httpClient.send(url, method, content?, headers?, timeout?)` |
+| 创建 JSON 内容 | `k.net.httpClient.createJsonContent(body)` |
+| 创建表单内容 | `k.net.httpClient.createFormUrlEncodedContent(body)` |
+| 创建 multipart | `k.net.httpClient.createMultipartFormDataContent()` |
+| 批量请求 | `k.net.httpClient.createBatchRequest()` |
+| 响应字符串 | `response.bodyString()` |
+| 响应二进制 | `response.bodyBinary()` |
 
 ### 邮件 (k.mail)
 
 | 功能 | API |
 |------|-----|
+| 创建 SMTP 服务器 | `k.mail.createSmtpServer()` |
 | 创建邮件 | `k.mail.createMessage()` |
-| 发送 | `k.mail.smtp.send(msg)` |
-| AWS SES | `k.mail.amazonses.createEmail(config)` |
+| 发送 | `k.mail.smtp.send(server, msg)` |

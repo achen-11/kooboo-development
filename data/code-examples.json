@@ -113,8 +113,8 @@
     {
       "name": "外部 API 请求",
       "category": "net",
-      "example": "const data = k.net.url.getJson('https://api.example.com/data')\nconst html = k.net.url.get(url, { 'Authorization': 'Bearer token' })",
-      "description": "发送 HTTP 请求到外部 API"
+      "example": "// GET 请求\nconst response = k.net.httpClient.send('https://api.example.com/data', 'GET')\nconst data = JSON.parse(response.bodyString())\n\n// POST JSON\nconst content = k.net.httpClient.createJsonContent({\n    name: 'John',\n    email: 'john@example.com'\n})\nconst response = k.net.httpClient.send('https://api.example.com/create', 'POST', content)\nconst result = JSON.parse(response.bodyString())\n\n// 带请求头\nconst response = k.net.httpClient.send(\n    'https://api.example.com/data',\n    'GET',\n    undefined,\n    { 'Authorization': 'Bearer token' }\n)",
+      "description": "发送 HTTP 请求到外部 API（推荐使用 k.net.httpClient）"
     },
     {
       "name": "数据加密",
@@ -155,7 +155,7 @@
     {
       "name": "邮件发送",
       "category": "mail",
-      "example": "const msg = k.mail.createMessage()\nmsg.to = 'user@example.com'\nmsg.subject = 'Hello'\nmsg.body = 'Content'\nk.mail.smtp.send(msg)",
+      "example": "// 创建 SMTP 服务器配置\nconst server = k.mail.createSmtpServer()\nserver.host = 'smtp.qq.com'  // 服务器地址\nserver.port = 465  // 端口\nserver.ssl = true  // 是否启用 SSL\nserver.username = 'your-email@qq.com'  // 用户名\nserver.password = 'your-auth-code'  // SMTP 授权码\n\n// 创建邮件\nconst msg = k.mail.createMessage()\nmsg.from = 'your-email@qq.com'  // 发件人\nmsg.to = 'user@example.com'  // 收件人\nmsg.subject = '验证码'  // 邮件标题\nmsg.htmlBody = '<h1>您的验证码：123456</h1>'  // HTML 内容\n\n// 发送\nk.mail.smtp.send(server, msg)",
       "description": "通过 SMTP 发送邮件"
     },
     {
