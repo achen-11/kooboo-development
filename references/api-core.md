@@ -8,8 +8,8 @@
 
 获取客户端请求信息。
 
-### 查询参数
-
+### 查询参数(params)
+注意: 因为是 params, 所以类型必定是 string
 ```javascript
 // 获取单个参数
 const id = k.request.queryString.id
@@ -18,10 +18,16 @@ const name = k.request.get('name')
 // 获取所有参数
 const params = k.request.queryString
 // { id: '123', name: 'john' }
+
+// 直接从函数中获取
+k.api.get((id: string, name: string)=>{
+    return { id, name }
+})
+
 ```
 
-### 表单数据
-
+### 表单数据(form)
+通常仅在带有 file 的请求时使用
 ```javascript
 // 获取表单提交的数据（表单编码）
 const email = k.request.form.email
@@ -39,7 +45,7 @@ const formData = k.request.form
 // 方式一（推荐）：直接在回调函数参数中接收
 // @k-url /api/user/{action}
 
-k.api.post('create-user', (body) => {
+k.api.post('create-user', (body: CreateUserBody) => {
     const { userName, password, email } = body
     return { success: true, data: { userName } }
 })
@@ -47,7 +53,7 @@ k.api.post('create-user', (body) => {
 // 方式二：使用 k.request.body（需要自行 JSON.parse）
 k.api.post('create-user', () => {
     const bodyStr = k.request.body  // 原始字符串
-    const body = JSON.parse(bodyStr)  // 手动解析
+    const body = JSON.parse(bodyStr) as CreateUserBody  // 手动解析
     const { userName, password, email } = body
     return { success: true, data: { userName } }
 })
@@ -90,15 +96,13 @@ k.api.post('create-user', (body: CreateUserBody) => {
 const method = k.request.method  // 'GET', 'POST', 'PUT', 'DELETE'
 
 // 请求 URL
-const url = k.request.url
-const path = k.request.path
+const url = k.request.url // "/api/test"
 
 // 客户端信息
 const ip = k.request.clientIp
-const userAgent = k.request.userAgent
 
 // 请求头
-const token = k.request.headers['Authorization']
+const token = k.request.headers.get('Authorization')
 ```
 
 ### 文件上传
@@ -113,7 +117,7 @@ if (k.request.files && k.request.files.length > 0) {
 
     // 或获取文件信息
     const fileName = file.fileName
-    const fileSize = file.size
+    const binaryData = file.bytes
     const contentType = file.contentType
 }
 ```
@@ -162,64 +166,14 @@ k.response.redirect('/login?returnurl=' + encodeURIComponent(k.request.url))
 
 ```javascript
 // 设置状态码
-k.response.statusCode(404)
+k.api.httpCode(400)
 
 // 快速返回 404
-k.response.notFound()
+k.api.notFound()
 
 // 快速返回 500
-k.response.serverError()
+k.api.serverError()
 ```
-
-### 文件响应
-
-```javascript
-// 返回文件
-k.response.file('images/logo.png')
-
-// 返回二进制文件
-k.response.file('documents/report.pdf', 'application/pdf')
-```
-
----
-
-## k.session — 会话存储
-
-在服务端存储用户会话数据。
-
-### 基本操作
-
-```javascript
-// 设置会话值
-k.session.set('userId', '12345')
-k.session.set('cart', cartData)
-
-// 获取会话值
-const userId = k.session.get('userId')
-
-// 简写形式
-k.session.userId = '12345'
-const id = k.session.userId
-
-// 检查键是否存在
-if (k.session.containsKey('userId')) {
-    // ...
-}
-
-// 删除会话值
-k.session.remove('userId')
-
-// 清空所有会话
-k.session.clear()
-```
-
-### 会话配置
-
-```javascript
-// 会话超时（默认 30 分钟）
-// 配置在 Kooboo 后台设置
-```
-
 ---
 
 ## k.cookie — Cookie 操作
@@ -251,8 +205,12 @@ const token = k.cookie.get('token')
 ### 删除 Cookie
 
 ```javascript
+// 方式一
 k.cookie.remove('token')
 k.cookie.remove('token', '/')
+
+// 方式二
+k.cookie.set('token', '', -1)  // 立即过期
 ```
 
 ### 获取所有 Cookie 键
@@ -264,7 +222,7 @@ const keys = k.cookie.keys
 
 ---
 
-## k.state — 渲染状态
+## k.state — 渲染状态(上下文)
 
 在 SSR 模式下设置状态，供模板使用。
 
@@ -289,6 +247,7 @@ const products = k.state.get('products')
 k.state.set('title', '首页')
 
 // k.utils.clientJS - 供客户端 JavaScript 使用
+// 约等于在客户端执行 window.products = products
 k.utils.clientJS.setVariable('products', products)
 ```
 
@@ -317,10 +276,16 @@ const count = k.t('{count} items', { count: 5 })
 
 ```html
 <!-- 直接使用 -->
-<h1 k-text="k.label('page.title')"></h1>
+<!-- 方式一: k-label -->
+<!-- 环境要求: 无需声明 env="server" -->
+<h1 k-label="page.title"></h1>
+
+<!-- 方式二: k.t() (推荐) -->
+<!-- 环境要求: 需要声明 env="server" -->
+<h1>{{ k.t('page.title')}}</h1>
 
 <!-- 动态键 -->
-<input placeholder="Name" k-attribute="placeholder k.label('Name')">
+<input :placeholder="k.t('Name')" >
 ```
 
 ---
@@ -331,13 +296,13 @@ const count = k.t('{count} items', { count: 5 })
 
 ```javascript
 // 设置客户端变量（服务端）
+// 约等于在客户端执行 window.config = { apiUrl: '/api', theme: 'dark' }
+// 环境要求: 需要声明 env="server"
+// 注意: serVariable 的值必须是一个对象或者数组, 不能是函数或者简单数据类型
 k.utils.clientJS.setVariable('config', {
     apiUrl: '/api',
     theme: 'dark'
 })
-
-// 获取客户端变量
-const config = k.utils.clientJS.getVariable('config')
 
 // 在客户端访问
 window.config  // { apiUrl: '/api', theme: 'dark' }
@@ -352,7 +317,7 @@ window.config  // { apiUrl: '/api', theme: 'dark' }
 ```javascript
 // page 顶部检查登录
 <script env="server" type="module">
-    if (!k.session.userId) {
+    if (!k.cookie.get('token')) {
         k.response.redirect('/login?returnurl=' + encodeURIComponent(k.request.url))
         return
     }
@@ -363,8 +328,8 @@ window.config  // { apiUrl: '/api', theme: 'dark' }
 
 ```javascript
 // api/user.ts
-k.api.get('info', () => {
-    const user = k.DB.sqlite.users.findOne({ id: k.session.userId })
+k.api.get('info', (userId: string) => {
+    const user = k.DB.sqlite.users.findOne({ id: userId })
     if (!user) {
         k.response.statusCode(401)
         return { success: false, message: '未登录' }
@@ -395,7 +360,7 @@ k.api.post('upload', () => {
 
 ## ⚠️ API 文件规范
 
-### 1. 必须添加 @k-url 路由声明
+### 1. 必须添加 @k-url 路由声明 (kooboo cli 语法)
 
 API 文件顶部必须使用 `@k-url` 声明路由：
 
@@ -434,8 +399,15 @@ import { User } from '../code/Models'
 import { User, Menu, MenuItem } from 'code/Models'
 
 // GET 请求
+// 方式一 (推荐)
+k.api.get('user-info', (userId: string) => {
+    const user = User.findById(userId)
+    return { success: true, data: user }
+})
+
+// 方式二
 k.api.get('user-info', () => {
-    const userId = k.session.get('userId')
+    const userId = k.request.queryString.userId
     const user = User.findById(userId)
     return { success: true, data: user }
 })

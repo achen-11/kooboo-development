@@ -28,14 +28,20 @@
     {
       "name": "查询参数获取",
       "category": "request",
-      "example": "const id = k.request.queryString.id\nconst name = k.request.get('name')",
-      "description": "获取 URL 查询参数"
+      "example": "// 获取单个参数\nconst id = k.request.queryString.id\nconst name = k.request.get('name')\n\n// 获取所有参数\nconst params = k.request.queryString\n// { id: '123', name: 'john' }\n\n// 直接从函数中获取\nk.api.get('user-info', (id: string, name: string)=>{\n  return { id, name }\n})",
+      "description": "获取 URL 查询参数（类型必定是 string）"
     },
     {
       "name": "表单数据获取",
       "category": "request",
-      "example": "const email = k.request.form.email\nconst password = k.request.form.password",
-      "description": "获取表单提交的数据"
+      "example": "// 获取表单提交的数据（表单编码）\nconst email = k.request.form.email\nconst password = k.request.form.password\n\n// 获取所有表单数据\nconst formData = k.request.form",
+      "description": "获取表单提交的数据（通常仅在带有 file 的请求时使用）"
+    },
+    {
+      "name": "请求信息获取",
+      "category": "request",
+      "example": "// HTTP 方法\nconst method = k.request.method  // 'GET', 'POST', 'PUT', 'DELETE'\n\n// 请求 URL\nconst url = k.request.url // \"/api/test\"\n\n// 客户端信息\nconst ip = k.request.clientIp\n\n// 请求头\nconst token = k.request.headers.get('Authorization')",
+      "description": "获取请求信息，包括方法、URL、客户端 IP 和请求头"
     },
     {
       "name": "JSON 响应",
@@ -49,17 +55,12 @@
       "example": "k.response.redirect('/login')",
       "description": "重定向到其他页面"
     },
-    {
-      "name": "会话存储",
-      "category": "session",
-      "example": "k.session.set('userId', user.id)\nconst userId = k.session.get('userId')",
-      "description": "在会话中存储和获取数据"
-    },
+
     {
       "name": "Cookie 设置",
       "category": "cookie",
-      "example": "k.cookie.set('token', 'abc123', 7)  // 7天过期\nconst token = k.cookie.get('token')",
-      "description": "设置和获取 Cookie"
+      "example": "// 设置 Cookie（天数）\nk.cookie.set('token', 'abc123', 7)  // 7 天过期\n\n// 按分钟设置\nk.cookie.setByMinutes('session', 'xyz', 30)  // 30 分钟\n\n// 获取 Cookie\nconst token = k.cookie.get('token')\n\n// 删除 Cookie\n// 方式一\nk.cookie.remove('token')\nk.cookie.remove('token', '/')\n\n// 方式二\nk.cookie.set('token', '', -1)  // 立即过期",
+      "description": "设置、获取和删除 Cookie"
     },
     {
       "name": "SQLite 查询",
@@ -130,7 +131,7 @@
     {
       "name": "多语言标签",
       "category": "i18n",
-      "example": "const title = k.label('page.title')\nconst greeting = k.t('Hello {name}', { name: 'John' })",
+      "example": "// 获取翻译\nconst title = k.label('page.title')\nconst welcome = k.label('Welcome')\n\n// 带参数的翻译\nconst greeting = k.t('Hello {name}', { name: 'John' })\n// 输出: Hello John\n\nconst count = k.t('{count} items', { count: 5 })\n// 输出: 5 items\n\n// 在模板中使用\n// 方式一: k-label (无需声明 env=\"server\")\n// <h1 k-label=\"page.title\"></h1>\n\n// 方式二: k.t() (推荐，需要声明 env=\"server\")\n// <h1>{{ k.t('page.title')}}</h1>\n\n// 动态键\n// <input :placeholder=\"k.t('Name')\" >",
       "description": "使用国际化标签"
     },
     {
@@ -172,13 +173,13 @@
     {
       "name": "文件上传处理",
       "category": "request",
-      "example": "if (k.request.files.length > 0) {\n  const file = k.request.files[0]\n  file.save(file.fileName)\n}",
+      "example": "if (k.request.files && k.request.files.length > 0) {\n  const file = k.request.files[0]\n\n  // 保存文件\n  file.save('uploads/' + file.fileName)\n\n  // 或获取文件信息\n  const fileName = file.fileName\n  const binaryData = file.bytes\n  const contentType = file.contentType\n}",
       "description": "处理文件上传"
     },
     {
       "name": "客户端 JavaScript 交互",
       "category": "ssr",
-      "example": "// 服务端\nk.utils.clientJS.setVariable('config', config)\n\n// 客户端\nconst config = window.config",
+      "example": "// 服务端\n// 约等于在客户端执行 window.config = { apiUrl: '/api', theme: 'dark' }\n// 环境要求: 需要声明 env=\"server\"\n// 注意: serVariable 的值必须是一个对象或者数组, 不能是函数或者简单数据类型\nk.utils.clientJS.setVariable('config', {\n  apiUrl: '/api',\n  theme: 'dark'\n})\n\n// 客户端\nconst config = window.config  // { apiUrl: '/api', theme: 'dark' }",
       "description": "服务端和客户端数据传递"
     }
   ]
