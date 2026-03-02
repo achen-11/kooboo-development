@@ -1,6 +1,6 @@
 # 代码示例索引
 
-本文档指向 `data/code-examples.json`，该文件包含 30+ 个常用代码模式。
+本文档指向 `data/code-examples.json`，该文件包含 31 个常用代码模式。
 
 ---
 
@@ -39,6 +39,7 @@
 |--------------|------|
 | `查询参数获取` | 获取 URL 查询参数 |
 | `表单数据获取` | 获取表单提交的数据 |
+| `请求信息获取` | 获取请求信息（方法、URL、IP、请求头） |
 | `文件上传处理` | 处理文件上传 |
 
 ### Response (response)
@@ -48,23 +49,18 @@
 | `JSON 响应` | 返回 JSON 格式的响应 |
 | `页面重定向` | 重定向到其他页面 |
 
-### Session (session)
-
-| pattern name | 说明 |
-|--------------|------|
-| `会话存储` | 在会话中存储和获取数据 |
-
 ### Cookie (cookie)
 
 | pattern name | 说明 |
 |--------------|------|
-| `Cookie 设置` | 设置和获取 Cookie |
+| `Cookie 设置` | 设置、获取和删除 Cookie |
 
 ### Database (database)
 
 | pattern name | 说明 |
 |--------------|------|
 | `SQLite 查询` | 执行 SQLite 查询 |
+| `k_sqlite ORM` | k_sqlite ORM 数据库操作（同步） |
 
 ### File (file)
 
@@ -261,8 +257,21 @@ k.api.post('create-user', (body: CreateUserBody) => {
 ### SQLite 查询
 
 ```typescript
+// 原生 SQL 查询
 const results = k.DB.sqlite.query('SELECT * FROM products WHERE price > ?', [100])
-const products = k.DB.sqlite.products.findAll({ category: 'electronics' })
+
+// 查询所有
+const products = k.DB.sqlite.products.all()
+
+// 按条件查询
+const { GT } = k.DB.sqlite.operators()
+const products = k.DB.sqlite.products.findAll({
+    category: 'electronics',
+    price: { [GT]: 100 }
+})
+
+// 单条查询
+const product = k.DB.sqlite.products.find({ _id: 1 })
 ```
 
 ### 文件读取

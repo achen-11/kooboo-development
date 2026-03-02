@@ -16,14 +16,14 @@
     {
       "name": "GET API 定义",
       "category": "api",
-      "example": "k.api.get('products', () => {\n  return k.DB.sqlite.products.all()\n})",
-      "description": "定义 GET 类型的 API 端点"
+      "example": "// @k-url /api/products/{action}\nk.api.get('list', () => {\n  return k.DB.sqlite.products.all()\n})",
+      "description": "定义 GET 类型的 API 端点（在 api/*.ts 文件顶部用注释定义路由）"
     },
     {
       "name": "POST API 定义",
       "category": "api",
-      "example": "// 少量字段：行内定义类型\nk.api.post('login', (body: { userName: string, password: string }) => {\n  const { userName, password } = body\n  return { success: true }\n})\n\n// 字段较多：定义接口\ninterface CreateOrderBody {\n  productId: string\n  quantity: number\n  remark?: string\n}\nk.api.post('create-order', (body: CreateOrderBody) => {\n  const { productId, quantity, remark } = body\n  const order = k.DB.sqlite.orders.add({ productId, quantity, remark })\n  return { success: true, orderId: order._id }\n})",
-      "description": "定义 POST 类型的 API 端点"
+      "example": "// @k-url /api/orders/{action}\n// 少量字段：行内定义类型\nk.api.post('login', (body: { userName: string, password: string }) => {\n  const { userName, password } = body\n  return { success: true }\n})\n\n// 字段较多：定义接口\ninterface CreateOrderBody {\n  productId: string\n  quantity: number\n  remark?: string\n}\nk.api.post('create-order', (body: CreateOrderBody) => {\n  const { productId, quantity, remark } = body\n  const order = k.DB.sqlite.orders.add({ productId, quantity, remark })\n  return { success: true, orderId: order._id }\n})",
+      "description": "定义 POST 类型的 API 端点（在 api/*.ts 文件顶部用注释定义路由）"
     },
     {
       "name": "查询参数获取",

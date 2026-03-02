@@ -1,245 +1,173 @@
-# Kooboo 路由系统
+# Kooboo-cli 路由系统
 
-## 路由定义
+## 目录
 
-### 基本语法
+- [Kooboo-cli 路由系统](#kooboo-cli-路由系统)
+  - [目录](#目录)
+  - [页面路由](#页面路由)
+    - [基础路由](#基础路由)
+    - [动态路由 (页面)](#动态路由-页面)
+  - [API 路由](#api-路由)
+    - [基础 API 路由](#基础-api-路由)
+    - [动态路由 (API)](#动态路由-api)
+    - [通配路由](#通配路由)
+    - [路由顺序注意事项](#路由顺序注意事项)
+  - [路由最佳实践](#路由最佳实践)
+    - [1. 路由命名规范](#1-路由命名规范)
+    - [2. 动态参数命名](#2-动态参数命名)
+    - [3. 路由优先级](#3-路由优先级)
 
-在 HTML 文件顶部使用注释定义路由：
+---
+
+## 页面路由
+
+在 HTML 文件顶部使用注释定义路由。
+
+### 基础路由
 
 ```html
 <!-- @k-url / -->
-<!-- @k-url /about -->
-<!-- @k-url /products -->
 ```
 
-路由定义必须在 HTML 文件的第一行或前几行。
-
-### 动态路由
+### 动态路由 (页面)
 
 使用 `{}` 定义动态参数：
 
 ```html
 <!-- @k-url /products/{category} -->
-<!-- @k-url /product/{productId} -->
 <!-- @k-url /user/{userId}/profile -->
 ```
 
-动态参数可通过 `k.request.queryString` 或 `k.request.get()` 获取：
-
-```javascript
-// URL: /product/123
-const productId = k.request.queryString.productId
-// 或
-const productId = k.request.get('productId')
-```
-
-### 路由约束
-
-| 约束类型 | 语法 | 示例 |
-|----------|------|------|
-| 数字 | `:number` | `/product/{id:number}` |
-| 字母 | `:alpha` | `/code/{code:alpha}` |
-| 字母数字 | `:alphanum` | `/tag/{tag:alphanum}` |
-| 通配 | `*` | `/files/{*path}` |
-
----
-
-## 页面与路由
-
-### page/ 目录
-
-页面文件放在 `page/` 目录下：
-
-```
-page/
-├── index.html          # → /
-├── about.html          # → /about
-├── products.html       # → /products
-├── product/
-│   └── {productId}.html  # → /product/{productId}
-└── user/
-    └── {userId}/
-        └── profile.html  # → /user/{userId}/profile
-```
-
-### 路由查找规则
-
-1. Kooboo 首先查找精确匹配
-2. 然后查找动态路由（按定义顺序）
-3. 最后查找通配路由
-
----
-
-## 视图与布局
-
-### 引用视图
+动态参数可通过 `k.state.get("paramName")` 获取：
 
 ```html
-<view id="common.header"></view>
-<view id="components.product-card"></view>
-<view id="homepage.hero-banner"></view>
-```
-
-### 使用布局
-
-```html
-<layout id="app.main">
-    <placeholder id="Main">
-        <!-- 页面内容 -->
-    </placeholder>
-</layout>
-```
-
-### 布局传参
-
-```html
-<!-- 布局中定义 placeholder -->
-<placeholder id="Title">
-    <slot name="default">
-        <h1>默认标题</h1>
-    </slot>
-</placeholder>
-
-<!-- page 中使用 -->
-<layout id="app.main">
-    <placeholder id="Title">
-        <h1 slot="default">自定义标题</h1>
-    </placeholder>
-    <placeholder id="Main">
-        <!-- 内容 -->
-    </placeholder>
-</layout>
-```
-
----
-
-## 视图属性传递
-
-### 定义可传参的视图
-
-```html
-<!-- view 定义 -->
-<view id="components.product-card">
-    <template k-slot-define:product="{ product }">
-        <div class="card">
-            <h3>{{ product.name }}</h3>
-            <p>{{ product.price }}</p>
-        </div>
-    </template>
-</view>
-```
-
-### 使用时传参
-
-```html
-<!-- page 中使用并传参 -->
-<view id="components.product-card">
-    <template k-slot-insert:product>
-        {
-            "name": "iPhone 15",
-            "price": 999
-        }
-    </template>
-</view>
-```
-
----
-
-## 路由与 API
-
-### 页面路由 vs API 路由
-
-- **页面路由**：`<!-- @k-url /path -->` 定义页面 URL
-- **API 路由**：在 `api/*.ts` 文件中使用 `k.api.get('/path', ...)`，**并且必须**在文件顶部添加 `// @k-url /api/xxx/{action}` 声明
-
-### API 路由示例
-
-```typescript
-// @k-url /api/product/{action}
-// api/products.ts
-import { Product } from 'code/Models'
-
-k.api.get('products', () => {
-    const products = Product.findAll({})
-    return { success: true, data: products }
-})
-
-k.api.get('product-detail', () => {
-    const id = k.request.queryString.id
-    const product = Product.findById(id)
-    return { success: true, data: product }
-})
-
-// 访问：/api/products/products
-// 访问：/api/products/product-detail?id=1
-```
-
-### ⚠️ 重要：API 文件必须添加 @k-url 声明
-
-```typescript
-// ✅ 正确：必须添加 @k-url 声明
-// @k-url /api/user/{action}
-import { User } from 'code/Models'
-k.api.get('info', () => { ... })
-
-// ❌ 错误：缺少 @k-url 声明
-import { User } from 'code/Models'
-k.api.get('info', () => { ... })
-```
-
----
-
-## 路由重定向
-
-### 服务端重定向
-
-```javascript
-k.response.redirect('/new-path')
-```
-
-### 条件重定向
-
-```javascript
-// 未登录重定向到登录页
-if (!k.account.isLogin) {
-    k.response.redirect('/login?returnurl=' + k.request.url)
-    return
-}
-```
-
----
-
-## 路由守卫
-
-### 服务端路由守卫
-
-```html
-<script env="server" type="module">
-    // 每个页面加载时都会执行
-    if (!k.account.isLogin && k.request.url !== '/login') {
-        k.response.redirect('/login?returnurl=' + k.request.url)
-    }
+<script env="server">
+    const category = k.state.get('category')
 </script>
+
+<div env="server">
+    <h1>{{ category }}</h1>
+</div>
+```
+
+> **注意**：`env="server"` 表示该代码仅在服务端执行，客户端不会包含这部分代码。
+
+---
+
+## API 路由
+
+在 `api/*.ts` 文件顶部使用注释定义路由。
+
+### 基础 API 路由
+
+```ts
+// @k-url /api/auth
+```
+
+### 动态路由 (API)
+
+使用 `{action}` 定义动态路由参数：
+
+```ts
+// @k-url /api/auth/{action}
+
+// GET /api/auth/login
+k.api.get('login', () => {
+    return { success: true, message: '登录成功' }
+})
+
+// POST /api/auth/logout
+k.api.post('logout', () => {
+    return { success: true, message: '退出成功' }
+})
+
+// PUT /api/auth/update
+k.api.put('update', () => {
+    return { success: true, message: '更新成功' }
+})
+
+// DELETE /api/auth/delete
+k.api.delete('delete', () => {
+    return { success: true, message: '删除成功' }
+})
+```
+
+### 通配路由
+
+不携带参数时默认为通配路由，匹配所有未明确匹配的子路由：
+
+```ts
+// @k-url /api/auth/{action}
+
+// GET /api/auth (无参数时的通配匹配)
+k.api.get(() => {
+    return { success: true, message: '通配路由' }
+})
+```
+
+### 路由顺序注意事项
+
+> **⚠️ 重要**：通配路由必须在所有具体路由之后定义，否则将不会匹配到子路由。
+
+```ts
+// ❌ 错误示范
+// @k-url /api/auth/{action}
+
+// 通配路由放在前面
+k.api.get(() => {
+    return { success: true, message: '通配路由' }
+})
+
+// 该 API 永远不会被匹配到
+k.api.get('logout', () => {
+    return { success: true, message: '退出成功' }
+})
+```
+
+```ts
+// ✅ 正确示范
+// @k-url /api/auth/{action}
+
+// 具体路由放在前面
+k.api.get('logout', () => {
+    return { success: true, message: '退出成功' }
+})
+
+k.api.get('login', () => {
+    return { success: true, message: '登录成功' }
+})
+
+// 通配路由放在最后
+k.api.get(() => {
+    return { success: true, message: '通配路由' }
+})
 ```
 
 ---
 
 ## 路由最佳实践
 
-1. **路由命名**：使用小写字母和连字符
-   - ✅ `/product-detail`、`/user-profile`
-   - ❌ `/ProductDetail`、`/User_Profile`
+### 1. 路由命名规范
 
-2. **动态参数**：参数名使用有意义的名称
-   - ✅ `/order/{orderId}`
-   - ❌ `/order/{id}`
+| 类型 | 推荐 | 不推荐 |
+|------|------|--------|
+| 页面路由 | `/product-detail`、`/user-profile` | `/ProductDetail`、`/User_Profile` |
+| API 路由 | `/api/products`、`/api/users` | `/api/Products`、`/API/users` |
 
-3. **路由顺序**：静态路由放在动态路由前面
-   ```html
-   <!-- @k-url /products -->
-   <!-- @k-url /products/{category} -->
-   ```
+- 使用小写字母和连字符 `-`
+- 使用复数形式命名资源集合（如 `/users` 而非 `/user`）
+- RESTful 风格：GET（获取）、POST（创建）、PUT（更新）、DELETE（删除）
 
-4. **SEO**：需要 SEO 的页面使用 SSR 模式，不需要的使用 Script Vue
+### 2. 动态参数命名
 
-5. **404 处理**：创建 `page/404.html` 处理未匹配路由
+| 推荐 | 不推荐 |
+|------|--------|
+| `/order/{orderId}` | `/order/{id}` |
+| `/user/{userId}/profile` | `/user/{id}/profile` |
+
+使用有意义的参数名称，提高代码可读性和可维护性。
+
+### 3. 路由优先级
+
+- **具体路由优先**：路径越具体越靠前
+- **通配路由放最后**：避免拦截其他路由
