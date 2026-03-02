@@ -67,6 +67,7 @@ project/
 - TypeScript 服务端代码
 - 不直接暴露为 API，供其他代码调用
 - 目录结构：`code/Models/`、`code/Services/`
+- **业务逻辑层**必须放在 `code/Services/xxx.ts`（如 `code/Services/auth.ts`），**不得**在 `code/` 根目录下创建业务服务文件（如 `code/auth.ts`）；引用时使用 `code/Services/xxx`。
 - 命名约定：PascalCase（如 `OrderService.ts`）
 
 ### api/ — API 端点
@@ -78,7 +79,8 @@ project/
 
 ```typescript
 // @k-url /api/user/{action}
-import { User } from 'code/Models'
+// 引用 Model：有聚合用聚合文件路径（如 code/Models/index），无聚合用 code/Models/User；禁止写 code/Models
+import { User } from 'code/Models/index'
 
 k.api.get('user-info', () => {
     const userId = k.session.get('userId')
@@ -133,7 +135,7 @@ localVueProject/
 
 ## 数据模型目录（code/Models/）
 
-使用 k_sqlite ORM 时，模型文件放在 `code/Models/`：
+使用 k_sqlite ORM 时，模型文件放在 `code/Models/`。**引用 Model 时**：有聚合则用聚合文件路径（如 `code/Models/index`），无聚合则直接引用具体文件（如 `import { User } from 'code/Models/User'`）；**禁止**使用 `code/Models`（无文件名）。
 
 ```typescript
 // code/Models/User.ts

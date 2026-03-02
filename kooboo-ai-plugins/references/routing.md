@@ -171,3 +171,17 @@ k.api.get(() => {
 
 - **具体路由优先**：路径越具体越靠前
 - **通配路由放最后**：避免拦截其他路由
+
+### 4. API 按模块合并（同一模块一个文件）
+
+**同一模块的多个接口应放在一个 api 文件中**，使用 `@k-url /api/模块名/{action}`，在同一文件内用多个 `k.api.get/post('actionName', ...)` 定义。
+
+- ❌ 错误：拆成多个文件，如 `api/order-list.ts`、`api/order-create.ts`
+- ✅ 正确：`api/order.ts`，且声明 `// @k-url /api/order/{action}`，文件内包含 `k.api.get('list', ...)`、`k.api.post('create', ...)` 等
+
+### 5. 单资源 id 建议用 query 参数
+
+**类似 id 的单资源标识建议使用 query 参数**，在 handler 中从 query 取 id；**避免**使用路径参数 `/{id}`。
+
+- ❌ 错误：`// @k-url /api/order/{id}`，`k.api.get('get', (id: string) => ...)`
+- ✅ 正确：`// @k-url /api/order?id={id}`，`k.api.get('get', (id: string) => ...)`，在回调内通过 query 获取 id

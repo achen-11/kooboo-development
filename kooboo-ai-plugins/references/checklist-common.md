@@ -27,7 +27,11 @@
 | 参数验证            | 验证必要参数是否存在                                | [ ] |
 | 输入 sanitization | 对用户输入进行过滤和转义                              | [ ] |
 | **@k-url 声明**   | API 文件顶部必须有 `// @k-url /api/xxx/{action}` | [ ] |
-| **Model 引用路径**  | 使用 `code/Models`，不是相对路径                   | [ ] |
+| **Model 引用路径**  | 有聚合用聚合路径（如 `code/Models/index`），无聚合用 `code/Models/模型名`；禁止 `code/Models` | [ ] |
+| **Services 位置**  | 业务逻辑在 `code/Services/xxx.ts`，不在 `code/` 根目录 | [ ] |
+| **API 按模块合并**  | 同一模块的多个接口放在一个 api 文件中 | [ ] |
+| **单资源 id**   | 类似 id 的参数使用 query（如 `?id=`），避免路径 `/{id}` | [ ] |
+| **Token 编解码**   | 使用 `k.security.jwt.encode/k.security.jwt.decode` 时，decode 返回格式为 `{code, value}` | [ ] |
 | **同步操作**        | k_sqlite 是同步的，不需要 `await`                 | [ ] |
 
 
@@ -103,4 +107,9 @@
 | 命名规范 | 目录、文件、变量命名一致 | [ ] |
 | 代码注释 | 复杂逻辑添加必要注释   | [ ] |
 
+---
+
+## 8. 常见错误自检
+
+交付前请对照 **`references/anti-patterns.md`**，避免 5 类常见错误（encode/decode、Model 引用、Services 目录、API 合并、id 用 query）。
 

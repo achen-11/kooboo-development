@@ -366,7 +366,7 @@ API 文件顶部必须使用 `@k-url` 声明路由：
 
 ```typescript
 // @k-url /api/user/{action}
-import { User } from 'code/Models'
+import { User } from 'code/Models/User'
 
 k.api.get('user-info', () => {
     // ...
@@ -381,31 +381,44 @@ k.api.get('user-info', () => {
 
 ### 2. 正确的 Model 引用路径
 
-在 Kooboo CLI 项目中，引用 Model 使用 `code/` 前缀：
+引用 Model 时**禁止**使用 `code/Models`（无文件名）。有聚合时用聚合文件路径（如 `code/Models/index`），无聚合时直接引用具体模型文件（如 `code/Models/User`）：
 
 ```typescript
-// ✅ 正确
+// ✅ 正确：有聚合
+import { User } from 'code/Models/index'
+import { Menu, MenuItem } from 'code/Models/index'
+
+// ✅ 正确：无聚合，直接引用具体文件
+import { User } from 'code/Models/User'
+
+// ❌ 错误：禁止无文件名
 import { User } from 'code/Models'
-import { Menu, MenuItem } from 'code/Models'
 
 // ❌ 错误：不要使用相对路径
 import { User } from '../code/Models'
 ```
 
-### 3. API 端点调用示例
+### 3. 同一模块 API 合并在一个文件
+
+同一模块的多个接口应放在一个 api 文件中，使用 `@k-url /api/模块名/{action}`，文件内多个 `k.api.get/post('actionName', ...)`。不要按 action 拆成多个文件（如 api/order-list.ts、api/order-create.ts）。
+
+### 4. 单资源 id 建议用 query 参数
+
+类似 id 的单资源标识建议使用 query 参数（如 `@k-url /api/order?id={id}`），在 handler 内通过 `k.request.queryString.id` 获取；避免使用路径参数 `/{id}`。
+
+### 5. API 端点调用示例
 
 ```typescript
 // @k-url /api/user/{action}
-import { User, Menu, MenuItem } from 'code/Models'
+import { User, Menu, MenuItem } from 'code/Models/index'
 
-// GET 请求
-// 方式一 (推荐)
+// GET 请求（userId 通过 query 传入，建议单资源 id 用 query）
 k.api.get('user-info', (userId: string) => {
     const user = User.findById(userId)
     return { success: true, data: user }
 })
 
-// 方式二
+// 或从 query 显式读取
 k.api.get('user-info', () => {
     const userId = k.request.queryString.userId
     const user = User.findById(userId)

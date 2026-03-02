@@ -49,19 +49,14 @@ const decoded = k.security.decodeBase64(encoded)
 
 ```javascript
 // 生成 JWT
-const token = k.security.jwt.encode(
-    { userId: 123, role: 'admin' },
-    'secret-key'
-)
+const token = k.security.jwt.encode({ userId: 123, role: 'admin' })
 // 输出: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 // 解析 JWT
-const payload = k.security.jwt.decode(token)
-// 输出: { userId: 123, role: 'admin', iat: ..., exp: ... }
+const resultString = k.security.jwt.decode(token)
+const result = JSON.parse(resultString)
+// 输出: { code: 0, value: { userId: 123, role: 'admin', iat: ..., exp: ... } }
 
-// 验证 JWT
-const isValid = k.security.jwt.verify(token, 'secret-key')
-// 输出: true 或 false
 ```
 
 ### 随机字符串
@@ -393,10 +388,10 @@ k.api.post('login', (body: { email: string, password: string }) => {
     }
 
     // 生成 JWT
-    const token = k.security.jwt.encode(
-        { userId: user.id, email: user.email },
-        'secret-key'
-    )
+    const token = k.security.jwt.encode({
+        userId: user.id,
+        email: user.email
+    })
 
     return { success: true, token }
 })
@@ -416,9 +411,8 @@ k.api.post('login', (body: { email: string, password: string }) => {
 | 解密 | `k.security.decrypt(encrypted, key)` |
 | Base64 编码 | `k.security.toBase64(str)` |
 | Base64 解码 | `k.security.decodeBase64(str)` |
-| JWT 生成 | `k.security.jwt.encode(payload, secret)` |
+| JWT 生成 | `k.security.jwt.encode(payload)` |
 | JWT 解析 | `k.security.jwt.decode(token)` |
-| JWT 验证 | `k.security.jwt.verify(token, secret)` |
 | 随机字符串 | `k.security.random(len)` |
 
 ### 网络 (k.net)

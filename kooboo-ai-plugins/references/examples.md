@@ -191,6 +191,8 @@
 </script>
 ```
 
+同一模块的多个 action（如 list、create）应放在一个 api 文件中，使用 `@k-url /api/模块名/{action}`。
+
 ### GET API
 
 ```typescript
@@ -215,9 +217,11 @@ k.api.post('create-order', (body: { productId: string, quantity: number }) => {
 
 ```typescript
 // @k-url /api/users/{action}
-import { User } from 'code/Models'
+// 引用 Model：有聚合用 code/Models/index，无聚合用 code/Models/User；禁止 code/Models
+import { User } from 'code/Models/index'
 
 // k_sqlite 是同步操作，不需要 await
+// userId 建议通过 query 传入（单资源 id 用 query）
 k.api.get('user-info', (userId: string) => {
     const user = User.findById(userId)
     
@@ -300,8 +304,9 @@ const hash = k.security.sha256(password)
 ### JWT
 
 ```typescript
-const token = k.security.jwt.encode({ userId: 123 }, 'secret')
-const payload = k.security.jwt.decode(token)
+const token = k.security.jwt.encode({ userId: 123 })
+const payloadString = k.security.jwt.decode(token)
+const payload = JSON.parse(payloadString)
 ```
 
 ---
