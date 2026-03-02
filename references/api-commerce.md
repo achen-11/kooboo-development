@@ -15,15 +15,13 @@ const products = k.commerce.product.list()
 // 条件查询
 const products = k.commerce.product.list({
     category: 'electronics',
-    keyword: 'iPhone'
 })
 
 // 获取单个商品
-const product = k.commerce.product.get(productId)
-const product = k.commerce.product.getBySeoName('iphone-15')
+const product = k.commerce.product.get(idOrSeoName)
 
 // 获取商品变体
-const variants = k.commerce.product.getVariants(productId)
+const variants = k.commerce.product.get(productId).variants
 ```
 
 ### 商品字段
@@ -33,25 +31,29 @@ const product = k.commerce.product.get(productId)
 
 // 基本信息
 product.id
-product.name
+product.seoName
+product.title
 product.description
-product.price
-product.salePrice
-product.stock
-product.sku
 
 // 图片
 product.images
-product.coverImage
+product.featuredImage
 
 // 分类
-product.categoryId
-product.categoryName
+product.categories
 
-// SEO
-product.seoTitle
-product.seoDescription
-product.url
+// 标签
+product.tags
+
+// 状态
+product.active
+
+// 变体
+product.variants
+
+// 变体属性
+// 价格
+product.variants[0].price
 ```
 
 ---
@@ -60,68 +62,41 @@ product.url
 
 ```javascript
 // 获取所有分类
-const categories = k.commerce.category.all()
-
-// 获取分类下的子分类
-const subcategories = k.commerce.category.getChildren(parentId)
-
-// 获取分类树
-const tree = k.commerce.category.getTree()
+const categories = k.commerce.category.list()
 
 // 按 ID 获取分类
-const category = k.commerce.category.get(categoryId)
+const category = k.commerce.category.get(seoNameOrId)
+
+// 获取分类下的子分类()
+const subcategories = k.commerce.category.get(seoNameOrId).children
+
 ```
 
 ---
 
 ## 购物车
 
-### 获取购物车
-
-```javascript
-// 获取当前用户的购物车
-const cart = k.commerce.cart.get()
-```
-
 ### 购物车操作
 
 ```javascript
-const cart = k.commerce.cart.get()
+// 创建购物车
+const cart = k.commerce.cart.create()
 
-// 添加商品到购物车
-cart.addItem(productId, quantity)
-cart.addItem(productId, quantity, { color: 'red', size: 'L' })
-
-// 更新商品数量
-cart.updateItem(itemId, quantity)
+// 添加或更新商品到购物车
+k.commerce.cart.addOrUpdateLine(cartId, variantId, quantity)
 
 // 移除商品
-cart.removeItem(itemId)
-
-// 清空购物车
-cart.clear()
-
-// 获取购物车总额
-const subtotal = cart.subtotal()
-const total = cart.total()
-
-// 获取商品数量
-const itemCount = cart.itemCount()
+k.commerce.cart.removeLine(cartId, variantId)
 ```
 
 ### 购物车项目
 
 ```javascript
-const cart = k.commerce.cart.get()
+const cart = k.commerce.cart.get(id)
 
-for (const item of cart.items) {
-    item.id           // 购物车项目 ID
-    item.productId    // 商品 ID
-    item.productName  // 商品名称
-    item.price        // 单价
+for (const item of cart.lines) {
+    item.variantId           // 变体 ID
     item.quantity     // 数量
-    item.total        // 小计
-    item.variant      // 变体信息 { color, size }
 }
 ```
 
@@ -133,26 +108,18 @@ for (const item of cart.items) {
 
 ```javascript
 // 创建订单
-const order = k.commerce.order.create(cart)
+const order = k.commerce.order.create(cartId)
 ```
 
-### 订单状态
+### 订单操作
 
 ```javascript
 // 更新订单状态
-k.commerce.order.updateStatus(orderId, 'paid')
-k.commerce.order.updateStatus(orderId, 'shipped')
-k.commerce.order.updateStatus(orderId, 'completed')
-k.commerce.order.updateStatus(orderId, 'cancelled')
+k.commerce.order.pay(orderId, method) // 支付
 
-// 状态常量
-// 'pending' - 待支付
-// 'paid' - 已支付
-// 'processing' - 处理中
-// 'shipped' - 已发货
-// 'completed' - 已完成
-// 'cancelled' - 已取消
-// 'refunded' - 已退款
+k.commerce.order.cancel(orderId, reason) // 取消订单
+k.commerce.order.delivery(orderId, lineIds)
+
 ```
 
 ### 查询订单
@@ -165,7 +132,16 @@ const orders = k.commerce.order.list()
 const order = k.commerce.order.get(orderId)
 
 // 按状态查询
-const paidOrders = k.commerce.order.list({ status: 'paid' })
+const paidOrders = k.commerce.order.list({
+    customerId, // 客户 ID
+    pageIndex,  // 页码
+    pageSize,   // 每页数量
+    canceled, // 是否已取消
+    delivered, // 是否已发货
+    paid, // 是否已支付
+    startDate, // 开始日期
+    endDate, // 结束日期
+})
 ```
 
 ### 订单字段
@@ -174,21 +150,27 @@ const paidOrders = k.commerce.order.list({ status: 'paid' })
 const order = k.commerce.order.get(orderId)
 
 order.id
-order.orderNumber      // 订单号
-order.userId
-order.status
-order.subtotal         // 商品小计
-order.shippingFee      // 运费
-order.tax              // 税费
-order.total            // 订单总额
+order.clientInfo // 客户信息
+
+order.subtotalAmount   // 商品小计
+order.shippingAmount   // 运费
+order.shippingAt       // 发货时间
+order.taxAmount        // 税费
+order.totalAmount      // 订单总额
 
 order.shippingAddress  // 收货地址
-order.billingAddress   // 账单地址
 order.notes            // 订单备注
 
-order.items            // 订单商品列表
+order.lines            // 订单商品列表
 order.paymentMethod   // 支付方式
 order.trackingNumber  // 快递单号
+
+order.paid   // 是否已支付
+order.paidAt // 支付时间
+
+order.canceled       // 是否已取消
+order.canceledReason // 取消原因
+order.canceledAt     // 取消时间
 
 order.createdAt
 order.updatedAt
@@ -200,7 +182,7 @@ order.updatedAt
 
 ```javascript
 // 获取当前用户
-const customer = k.commerce.customer.get()
+const customer = k.commerce.customer.get(id)
 
 // 更新客户信息
 k.commerce.customer.update({
@@ -211,40 +193,30 @@ k.commerce.customer.update({
 })
 
 // 获取客户地址
-const addresses = k.commerce.customer.getAddresses()
+const addresses = k.commerce.customer.get(id).addresses
 
-// 添加地址
-k.commerce.customer.addAddress({
-    name: 'Home',
-    firstName: 'John',
-    lastName: 'Doe',
-    address1: '123 Main St',
-    city: 'Beijing',
-    state: 'Beijing',
-    country: 'CN',
-    zipCode: '100000',
-    phone: '1234567890',
-    isDefault: true
+// 更新地址
+addresses.push({
+
+})
+k.commerce.customer.updateAddresses(customerId, {
+    id,
+    firstName,
+    lastName,
+    phone,
+    country,
+    province,
+    city,
+    zip,
+    address1,
+    address2,
+    isDefault,
 })
 ```
-
+// marked: 仅 review 到这里
 ---
 
 ## 支付
-
-### 支付方式
-
-```javascript
-// 获取可用支付方式
-const methods = k.commerce.payment.methods()
-
-// 常见支付方式
-// 'alipay' - 支付宝
-// 'wechat' - 微信支付
-// 'paypal' - PayPal
-// 'credit_card' - 信用卡
-// 'bank_transfer' - 银行转账
-```
 
 ### 支付流程
 
@@ -339,24 +311,6 @@ const currency = k.commerce.currency.current()
 
 // 设置货币
 k.commerce.currency.set('CNY')
-```
-
----
-
-## 心愿单
-
-```javascript
-// 获取心愿单
-const wishlist = k.commerce.wishlist.get()
-
-// 添加到心愿单
-k.commerce.wishlist.add(productId)
-
-// 移除心愿单
-k.commerce.wishlist.remove(productId)
-
-// 检查是否在心愿单
-const isInWishlist = k.commerce.wishlist.has(productId)
 ```
 
 ---

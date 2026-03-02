@@ -28,7 +28,7 @@ Kooboo 支持三种前端开发模式，选择取决于项目需求：
 <!-- @k-url /products -->
 
 <!-- 服务端脚本 -->
-<script env="server" type="module">
+<script env="server">
     // 服务端执行，可访问 k 对象
     const products = k.DB.sqlite.products.all()
     const categories = k.commerce.category.all()
@@ -50,13 +50,17 @@ Kooboo 支持三种前端开发模式，选择取决于项目需求：
 
 ### 数据传递
 
-```javascript
+```html
 // 服务端设置
+<script env="server">
 k.state.set('key', value)           // 供模板使用
-k.utils.clientJS.setVariable('key', value)  // 供客户端 JS 使用
-
+// value 必须是对象或者数组, 不能是函数或者简单数据类型
+k.utils.clientJS.setVariable('key', value)  // 供客户端 JS 使用, 
+</script>
 // 客户端获取
+<script>
 const data = window.key             // 通过全局变量获取
+</script>
 ```
 
 ### 适用场景
@@ -93,48 +97,109 @@ const data = window.key             // 通过全局变量获取
 <!-- @k-url /admin -->
 
 <!-- 引入 Vue 和组件库 -->
-<script src="/js/vue.global.js"></script>
-<script src="/js/element-plus/index.js"></script>
-<script src="/js/http.js"></script>
+<script src="/vue.global.js"></script>
+<script src="/vue-router.js"></script>
+<script src="/element-plus/index.js"></script>
+<script src="/http.js"></script>
+<script src="/axios.js"></script>
 
 <!-- 服务端预取数据 -->
-<script env="server" type="module">
+<script env="server">
     // 获取初始数据
     const stats = k.DB.sqlite.orders.count()
     k.utils.clientJS.setVariable('stats', stats)
 </script>
 
-<!-- 客户端 Vue 应用 -->
+### 定义基础方法
+
+```html
 <script>
-    const { createApp, ref, onMounted } = Vue
+/** view: common.html */
+  /* 
+        针对kooboo的vue组件注册
+        
+        组件使用以下方法会自动注册该组件, 减少重复配置components
+        defineComponent('my-component', {...})
+     */
+  var { definePage, defineComponent, getComponents } = (() => {
+    const components = {}
 
-    const App = {
-        setup() {
-            const orders = ref(window.stats || [])
-
-            onMounted(() => {
-                // 客户端逻辑
-                fetchOrders()
-            })
-
-            return { orders }
-        },
-        template: `
-            <div>
-                <h1>订单管理</h1>
-                <el-table :data="orders">
-                    <el-table-column prop="id" label="订单号"></el-table-column>
-                    <el-table-column prop="total" label="金额"></el-table-column>
-                </el-table>
-            </div>
-        `
+    return {
+      /**
+       * definePage
+       * @param {object} component vue组件
+       */
+      definePage(component) {
+        const key = 'page-component'
+        if (components[key]) {
+          console.error(`components ${key} multiple registration`)
+          return
+        }
+        components[key] = { ...component, template: '#page-component' }
+        return components[key]
+      },
+      /**
+       * defineComponent
+       * @param {string} key 组件名称
+       * @param {object} component vue组件
+       */
+      defineComponent(key, component) {
+        if (components[key]) {
+          console.error(`components ${key} multiple registration`)
+          return
+        }
+        components[key] = component
+        return components[key]
+      },
+      /**
+       * getComponents
+       * @param {string} key 组件名称
+       * @return {{[key:string]: any}[]} 所有组件
+       */
+      getComponents() {
+        return components
+      }
     }
+  })()
 
-    createApp(App).use(ElementPlus).mount('#app')
+  /**
+   *  vue 常用方法扁平化
+   */
+  var {
+    ref,
+    reactive,
+    readonly,
+    watch,
+    computed,
+    onMounted,
+    onUnmounted,
+    onBeforeUnmount,
+    nextTick,
+    unref,
+    toRef,
+    toRefs,
+    getCurrentInstance,
+    h,
+    inject,
+    provide,
+    shallowRef,
+    useTemplateRef
+  } = Vue
+
+  var i18n = VueI18n.createI18n(
+    Object.assign(window.__I18N__, {
+      silentTranslationWarn: true,
+      missingWarn: false,
+      silentFallbackWarn: true,
+      fallbackWarn: false
+    })
+  )
+  var t = i18n.global.t
 </script>
-
-<div id="app"></div>
 ```
+
+### 定义
+
 
 ### definePage 模式
 
